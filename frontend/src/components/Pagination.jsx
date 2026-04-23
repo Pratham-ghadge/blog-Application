@@ -1,0 +1,65 @@
+export default function Pagination({ currentPage, totalPages, onPageChange }) {
+    if (totalPages <= 1) return null;
+
+    const getPages = () => {
+        const pages = [];
+        const delta = 2;
+        const left = Math.max(2, currentPage - delta);
+        const right = Math.min(totalPages - 1, currentPage + delta);
+
+        pages.push(1);
+        if (left > 2) pages.push('...');
+
+        for (let i = left; i <= right; i++) {
+            pages.push(i);
+        }
+
+        if (right < totalPages - 1) pages.push('...');
+        if (totalPages > 1) pages.push(totalPages);
+
+        return pages;
+    };
+
+    return (
+        <div className="flex items-center justify-center gap-2 mt-10">
+            <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
+            {getPages().map((page, i) =>
+                page === '...' ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-gray-400">
+                        ...
+                    </span>
+                ) : (
+                    <button
+                        key={page}
+                        onClick={() => onPageChange(page)}
+                        className={`w-10 h-10 rounded-xl text-sm font-medium transition-all ${currentPage === page
+                                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md'
+                                : 'border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'
+                            }`}
+                    >
+                        {page}
+                    </button>
+                )
+            )}
+
+            <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    );
+}
