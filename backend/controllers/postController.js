@@ -2,29 +2,11 @@ const { validationResult, body } = require('express-validator');
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const multer = require('multer');
-const path = require('path');
+const { postImageStorage, cloudinary } = require('../config/cloudinary');
 
-// Multer configuration
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, '..', 'uploads'));
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    },
-});
-
-const fileFilter = (req, file, cb) => {
-    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
-    }
-};
-
+// Multer with Cloudinary storage
 const upload = multer({
-    storage,
-    fileFilter,
+    storage: postImageStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
@@ -160,8 +142,9 @@ const createPost = async (req, res, next) => {
                 : tags;
         }
 
+        // Cloudinary URL from multer-storage-cloudinary
         if (req.file) {
-            postData.coverImage = `/uploads/${req.file.filename}`;
+            postData.coverImage = req.file.path;
         }
 
         const post = await Post.create(postData);
@@ -213,8 +196,14 @@ const updatePost = async (req, res, next) => {
                 : tags;
         }
 
+        // Cloudinary URL from multer-storage-cloudinary
         if (req.file) {
-            post.coverImage = `/uploads/${req.file.filename}`;
+            // Delete old image from Cloudinary if it exists
+            if (post.coverImage && post.coverImage.includes('cloudinary')) {
+                const publicId = post.coverImage.split('/').slice(-2).join('/').split('.')[0];
+                try { await cloudinary.uploader.destroy(publicId); } catch (e) { /* ignore */ }
+            }
+            post.coverImage = req.file.path;
         }
 
         const updatedPost = await post.save();
@@ -243,6 +232,12 @@ const deletePost = async (req, res, next) => {
             req.user.role !== 'admin'
         ) {
             return res.status(403).json({ message: 'Not authorized to delete this post' });
+        }
+
+        // Delete cover image from Cloudinary
+        if (post.coverImage && post.coverImage.includes('cloudinary')) {
+            const publicId = post.coverImage.split('/').slice(-2).join('/').split('.')[0];
+            try { await cloudinary.uploader.destroy(publicId); } catch (e) { /* ignore */ }
         }
 
         await Comment.deleteMany({ post: post._id });

@@ -3,29 +3,11 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Post = require('../models/Post');
 const multer = require('multer');
-const path = require('path');
+const { avatarStorage, cloudinary } = require('../config/cloudinary');
 
-// Multer for avatar upload
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, '..', 'uploads'));
-    },
-    filename: function (req, file, cb) {
-        cb(null, 'avatar-' + Date.now() + '-' + file.originalname);
-    },
-});
-
-const fileFilter = (req, file, cb) => {
-    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
-    }
-};
-
+// Multer with Cloudinary storage for avatars
 const avatarUpload = multer({
-    storage,
-    fileFilter,
+    storage: avatarStorage,
     limits: { fileSize: 5 * 1024 * 1024 },
 });
 
@@ -113,8 +95,14 @@ const updateProfile = async (req, res, next) => {
             user.password = await bcrypt.hash(newPassword, salt);
         }
 
+        // Cloudinary URL from multer-storage-cloudinary
         if (req.file) {
-            user.avatar = `/uploads/${req.file.filename}`;
+            // Delete old avatar from Cloudinary if it exists
+            if (user.avatar && user.avatar.includes('cloudinary')) {
+                const publicId = user.avatar.split('/').slice(-2).join('/').split('.')[0];
+                try { await cloudinary.uploader.destroy(publicId); } catch (e) { /* ignore */ }
+            }
+            user.avatar = req.file.path;
         }
 
         const updatedUser = await user.save();
