@@ -1,5 +1,5 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,21 +8,11 @@ cloudinary.config({
 });
 
 const postImageStorage = new CloudinaryStorage({
-    cloudinary,
+    cloudinary: cloudinary,
     params: {
-        folder: 'blogspace/posts',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-        transformation: [{ width: 1200, height: 630, crop: 'limit', quality: 'auto' }],
+        folder: "posts",
+        allowed_formats: ["jpg", "png", "jpeg"],
     },
 });
 
-const avatarStorage = new CloudinaryStorage({
-    cloudinary,
-    params: {
-        folder: 'blogspace/avatars',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-        transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face', quality: 'auto' }],
-    },
-});
-
-module.exports = { cloudinary, postImageStorage, avatarStorage };
+module.exports = { cloudinary, postImageStorage };
